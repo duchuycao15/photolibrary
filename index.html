@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photo Gallery</title>
+  <meta name="description" content="A simple photo gallery with filters, search, and a lightbox." />
+
+  <style>
+    /* =========================================================
+       Photo Gallery (Single-file)
+       - All CSS is embedded here so you only need index.html
+       ========================================================= */
+
+    :root{
+      --bg: #0b0e14;
+      --panel: #101725;
+      --panel2:#0f1420;
+      --text:#e9eefc;
+      --muted:#aab6d6;
+      --line:#22304b;
+      --chip:#172033;
+      --chipActive:#2a3a61;
+      --primary:#6ea8ff;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --radius: 16px;
+    }
+
+    /* Basic reset */
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 0%, rgba(110,168,255,.18), transparent 55%),
+                  radial-gradient(900px 700px at 85% 10%, rgba(170,120,255,.12), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    /* Screen-reader-only utility */
+    .sr-only{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+
+    /* =========================================================
+       Header / Controls
+       ========================================================= */
+
+    .header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(11,14,20,.72);
+      border-bottom: 1px solid rgba(34,48,75,.7);
+    }
+    .header__inner{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 16px;
+      display:flex;
+      gap: 18px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      min-width: 260px;
+    }
+    .brand__logo{
+      width:44px; height:44px;
+      display:grid; place-items:center;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(110,168,255,.18), rgba(110,168,255,.06));
+      border:1px solid rgba(110,168,255,.25);
+    }
+    .brand__title{ margin:0; font-size: 20px; letter-spacing:.2px; }
+    .brand__subtitle{ margin:2px 0 0; color:var(--muted); font-size: 13px; }
+
+    .controls{
+      flex: 1;
+      min-width: 320px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .controls__row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .controls__row--wrap{ flex-wrap:wrap; justify-content:space-between; }
+
+    .input, .select{
+      width:100%;
+      background: rgba(16,23,37,.85);
+      color: var(--text);
+      border: 1px solid rgba(34,48,75,.9);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+    }
+    .input:focus, .select:focus{
+      border-color: rgba(110,168,255,.65);
+      box-shadow: 0 0 0 3px rgba(110,168,255,.15);
+    }
+
+    .btn{
+      border: 1px solid rgba(34,48,75,.9);
+      background: rgba(16,23,37,.85);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 12px;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .15s ease, background .15s ease;
+      white-space: nowrap;
+    }
+    .btn:hover{ border-color: rgba(110,168,255,.55); }
+    .btn:active{ transform: translateY(1px); }
+    .btn--primary{
+      background: rgba(110,168,255,.18);
+      border-color: rgba(110,168,255,.5);
+    }
+
+    .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+    .chip{
+      border: 1px solid rgba(34,48,75,.9);
+      background: rgba(23,32,51,.9);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 10px;
+      cursor:pointer;
+      font-size: 13px;
+    }
+    .chip.is-active{
+      background: rgba(42,58,97,.95);
+      border-color: rgba(110,168,255,.55);
+    }
+
+    .sort{ display:flex; gap:8px; align-items:center; }
+    .sort__label{ color:var(--muted); font-size: 13px; }
+    .select{ width:auto; }
+
+    /* =========================================================
+       Main / Grid
+       ========================================================= */
+
+    .main{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+
+    .status{
+      color: var(--muted);
+      font-size: 13px;
+      margin: 8px 0 14px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    /* Card */
+    .card{
+      position:relative;
+      background: rgba(16,23,37,.85);
+      border: 1px solid rgba(34,48,75,.85);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .card button{
+      all:unset;
+      display:block;
+      cursor:pointer;
+    }
+
+    .thumb{
+      width:100%;
+      display:block;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      transform: scale(1);
+      transition: transform .25s ease;
+      background: rgba(255,255,255,.04);
+    }
+    .card:hover .thumb{ transform: scale(1.03); }
+
+    .card__cap{
+      padding: 10px 10px 12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .title{
+      font-size: 13px;
+      margin:0;
+      line-height: 1.2;
+    }
+    .sub{
+      font-size: 12px;
+      color: var(--muted);
+      margin: 4px 0 0;
+    }
+
+    .tag{
+      font-size: 12px;
+      color: var(--text);
+      background: rgba(110,168,255,.14);
+      border: 1px solid rgba(110,168,255,.35);
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space:nowrap;
+      height: fit-content;
+    }
+
+    /* Top-right actions on a card (delete custom photo) */
+    .card__actions{
+      position:absolute;
+      top:10px; right:10px;
+      display:flex; gap:8px;
+      z-index: 2;
+    }
+    .smallbtn{
+      width:34px; height:34px;
+      display:grid; place-items:center;
+      border-radius: 12px;
+      border:1px solid rgba(34,48,75,.85);
+      background: rgba(11,14,20,.55);
+      cursor:pointer;
+      user-select:none;
+    }
+    .smallbtn:hover{ border-color: rgba(110,168,255,.55); }
+
+    /* =========================================================
+       Modal / Lightbox
+       ========================================================= */
+
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;            /* hidden by default */
+      align-items:center;
+      justify-content:center;
+      z-index: 50;
+    }
+    .modal.is-open{ display:flex; }
+
+    .modal__overlay{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,.62);
+    }
+
+    .modal__panel{
+      position:relative;
+      width: min(560px, calc(100% - 26px));
+      background: rgba(16,23,37,.95);
+      border: 1px solid rgba(34,48,75,.9);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal__panel--wide{
+      width: min(920px, calc(100% - 26px));
+    }
+
+    .modal__top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding: 12px 14px;
+      background: rgba(15,20,32,.9);
+      border-bottom:1px solid rgba(34,48,75,.75);
+    }
+    .modal__title{ font-weight: 650; font-size: 14px; }
+
+    .iconbtn{
+      width:38px; height:38px;
+      display:grid; place-items:center;
+      border-radius: 12px;
+      border:1px solid rgba(34,48,75,.9);
+      background: rgba(16,23,37,.85);
+      color: var(--text);
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .lightbox{
+      margin:0;
+      padding: 12px;
+      display:grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items:center;
+      gap: 10px;
+    }
+    .lightbox img{
+      width:100%;
+      max-height: 68vh;
+      object-fit: contain;
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(34,48,75,.6);
+    }
+    .navbtn{
+      width:44px; height:44px;
+      border-radius: 14px;
+      border:1px solid rgba(34,48,75,.9);
+      background: rgba(16,23,37,.85);
+      color: var(--text);
+      cursor:pointer;
+      font-size: 28px;
+      line-height: 1;
+      user-select:none;
+    }
+    .navbtn:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
+    .modal__bottom{
+      padding: 10px 14px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+      border-top:1px solid rgba(34,48,75,.75);
+      background: rgba(15,20,32,.55);
+    }
+    .meta{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .muted{ color: var(--muted); }
+    .hint{ font-size: 12px; }
+
+    /* =========================================================
+       Add Photo Form
+       ========================================================= */
+
+    .form{ padding: 14px; display:flex; flex-direction:column; gap: 12px; }
+    .field label{ display:block; font-size: 13px; margin: 0 0 6px; color: var(--text); }
+    .help{ margin: 6px 0 0; font-size: 12px; }
+    .form__actions{ display:flex; justify-content:flex-end; gap: 10px; margin-top: 6px; }
+    .tiny{ font-size: 12px; margin: 0; }
+
+    @media (max-width: 560px){
+      .controls__row{ justify-content:stretch; }
+      .lightbox{ grid-template-columns: 40px 1fr 40px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- =========================================================
+       Header: Brand + Search/Filter/Sort controls
+       ========================================================= -->
+  <header class="header">
+    <div class="header__inner">
+      <div class="brand">
+        <div class="brand__logo" aria-hidden="true">📷</div>
+        <div>
+          <h1 class="brand__title">Photo Gallery</h1>
+          <p class="brand__subtitle">Search, filter, and view photos in a lightbox</p>
+        </div>
+      </div>
+
+      <div class="controls" role="region" aria-label="Gallery controls">
+        <div class="controls__row">
+          <label class="sr-only" for="searchInput">Search photos</label>
+          <input id="searchInput" class="input" type="search" placeholder="Search by title…" autocomplete="off" />
+
+          <button id="addBtn" class="btn btn--primary" type="button">
+            + Add photo
+          </button>
+        </div>
+
+        <div class="controls__row controls__row--wrap">
+          <!-- Category chips -->
+          <div class="chips" role="group" aria-label="Category filters">
+            <button class="chip is-active" type="button" data-filter="all">All</button>
+            <button class="chip" type="button" data-filter="nature">Nature</button>
+            <button class="chip" type="button" data-filter="city">City</button>
+            <button class="chip" type="button" data-filter="people">People</button>
+            <button class="chip" type="button" data-filter="animals">Animals</button>
+          </div>
+
+          <!-- Sort dropdown -->
+          <div class="sort">
+            <label class="sort__label" for="sortSelect">Sort:</label>
+            <select id="sortSelect" class="select">
+              <option value="newest" selected>Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="title">Title (A→Z)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       Main: status + gallery grid
+       ========================================================= -->
+  <main class="main">
+    <section class="gallery" aria-label="Photo gallery">
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="grid" class="grid"></div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+       Lightbox Modal (view images larger)
+       ========================================================= -->
+  <div id="lightbox" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <!-- Overlay closes modal when clicked -->
+    <div class="modal__overlay" data-close="true"></div>
+
+    <div class="modal__panel modal__panel--wide" role="document">
+      <div class="modal__top">
+        <div class="modal__title" id="lightboxTitle">Photo</div>
+        <button class="iconbtn" type="button" aria-label="Close" data-close="true">✕</button>
+      </div>
+
+      <figure class="lightbox">
+        <button id="prevBtn" class="navbtn" type="button" aria-label="Previous photo">‹</button>
+        <img id="lightboxImg" alt="" />
+        <button id="nextBtn" class="navbtn" type="button" aria-label="Next photo">›</button>
+      </figure>
+
+      <div class="modal__bottom">
+        <div class="meta">
+          <span class="tag" id="lightboxTag">category</span>
+          <span class="muted" id="lightboxDate"></span>
+        </div>
+        <div class="hint muted">Tip: use ← → keys, Esc to close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       Add Photo Modal (save custom images to localStorage)
+       ========================================================= -->
+  <div id="addModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Add photo">
+    <div class="modal__overlay" data-close="true"></div>
+
+    <div class="modal__panel" role="document">
+      <div class="modal__top">
+        <div class="modal__title">Add a photo</div>
+        <button class="iconbtn" type="button" aria-label="Close" data-close="true">✕</button>
+      </div>
+
+      <form id="addForm" class="form">
+        <div class="field">
+          <label for="photoUrl">Image URL</label>
+          <input id="photoUrl" class="input" type="url" placeholder="https://…" required />
+          <p class="help muted">Use a direct image link (jpg/png/webp).</p>
+        </div>
+
+        <div class="field">
+          <label for="photoTitle">Title</label>
+          <input id="photoTitle" class="input" type="text" placeholder="My photo" required maxlength="60" />
+        </div>
+
+        <div class="field">
+          <label for="photoCategory">Category</label>
+          <select id="photoCategory" class="select" required>
+            <option value="nature">Nature</option>
+            <option value="city">City</option>
+            <option value="people">People</option>
+            <option value="animals">Animals</option>
+          </select>
+        </div>
+
+        <div class="form__actions">
+          <button class="btn" type="button" data-close="true">Cancel</button>
+          <button class="btn btn--primary" type="submit">Add</button>
+        </div>
+
+        <p class="muted tiny">
+          Saved to this browser (localStorage). Clearing site data will remove added photos.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       Photo Gallery (Single-file JavaScript)
+       Features:
+       - Responsive grid
+       - Search (by title)
+       - Category filters
+       - Sort (newest/oldest/title)
+       - Lightbox viewer + keyboard navigation
+       - Add photo by URL (stored in localStorage)
+       - Delete custom photos
+       ========================================================= */
+
+    // ---- Default demo images (replace URLs with your own if you want) ----
+    // Note: These are remote images from Unsplash. You can replace them with:
+    // - your own URLs
+    // - local images (e.g., "images/myphoto.jpg") if you host this folder
+    const DEFAULT_PHOTOS = [
+      {
+        id: "default-1",
+        title: "Misty Forest",
+        category: "nature",
+        url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-15"
+      },
+      {
+        id: "default-2",
+        title: "City Lights",
+        category: "city",
+        url: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-12"
+      },
+      {
+        id: "default-3",
+        title: "Portrait in Warm Light",
+        category: "people",
+        url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-10"
+      },
+      {
+        id: "default-4",
+        title: "Curious Cat",
+        category: "animals",
+        url: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-08"
+      },
+      {
+        id: "default-5",
+        title: "Mountain Trail",
+        category: "nature",
+        url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-05"
+      },
+      {
+        id: "default-6",
+        title: "Old Street",
+        category: "city",
+        url: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1400&q=80",
+        createdAt: "2026-02-02"
+      }
+    ];
+
+    // Where we store user-added photos in the browser
+    const STORAGE_KEY = "gallery_custom_photos_v1";
+
+    // Grab all important DOM elements once (faster + cleaner code)
+    const els = {
+      grid: document.getElementById("grid"),
+      status: document.getElementById("status"),
+      searchInput: document.getElementById("searchInput"),
+      sortSelect: document.getElementById("sortSelect"),
+      chips: Array.from(document.querySelectorAll(".chip")),
+
+      lightbox: document.getElementById("lightbox"),
+      lightboxImg: document.getElementById("lightboxImg"),
+      lightboxTitle: document.getElementById("lightboxTitle"),
+      lightboxTag: document.getElementById("lightboxTag"),
+      lightboxDate: document.getElementById("lightboxDate"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+
+      addBtn: document.getElementById("addBtn"),
+      addModal: document.getElementById("addModal"),
+      addForm: document.getElementById("addForm"),
+      photoUrl: document.getElementById("photoUrl"),
+      photoTitle: document.getElementById("photoTitle"),
+      photoCategory: document.getElementById("photoCategory")
+    };
+
+    // Current UI state
+    let activeFilter = "all";     // current category filter
+    let lightboxIndex = -1;       // current index inside the filtered/sorted list
+
+    /* ---------------------------------------------------------
+       Helpers: IDs, localStorage, list building
+       --------------------------------------------------------- */
+
+    // Generate a reasonably unique id with fallback for older browsers
+    function makeId() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "id-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+    }
+
+    // Read user-added photos from localStorage
+    function loadCustomPhotos() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    // Save user-added photos to localStorage
+    function saveCustomPhotos(custom) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
+    }
+
+    // Return combined list: user photos first, then defaults
+    function getAllPhotos() {
+      const custom = loadCustomPhotos();
+      return [...custom, ...DEFAULT_PHOTOS];
+    }
+
+    // Convert "YYYY-MM-DD" to a nicer display string
+    function formatDate(iso) {
+      const [y, m, d] = String(iso || "").split("-").map(Number);
+      if (!y || !m || !d) return "";
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    // Build the list the UI should show (apply filter + search + sort)
+    function getFilteredSortedPhotos() {
+      const q = els.searchInput.value.trim().toLowerCase();
+      const sortMode = els.sortSelect.value;
+
+      let list = getAllPhotos();
+
+      // Category filter
+      if (activeFilter !== "all") {
+        list = list.filter(p => p.category === activeFilter);
+      }
+
+      // Search by title
+      if (q) {
+        list = list.filter(p => p.title.toLowerCase().includes(q));
+      }
+
+      // Sorting
+      if (sortMode === "title") {
+        list = list.slice().sort((a, b) => a.title.localeCompare(b.title));
+      } else {
+        // newest/oldest by createdAt (string compare works for ISO dates)
+        list = list.slice().sort((a, b) => {
+          const da = a.createdAt || "1970-01-01";
+          const db = b.createdAt || "1970-01-01";
+          return sortMode === "newest" ? db.localeCompare(da) : da.localeCompare(db);
+        });
+      }
+
+      return list;
+    }
+
+    // Basic HTML escaping to avoid injecting raw user text into innerHTML
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // Check if a photo is user-added (custom) or from defaults
+    function isCustomPhoto(photo) {
+      const custom = loadCustomPhotos();
+      return custom.some(p => p.id === photo.id);
+    }
+
+    // Remove a custom photo by id (defaults cannot be deleted)
+    function deleteCustomPhoto(id) {
+      const custom = loadCustomPhotos();
+      const next = custom.filter(p => p.id !== id);
+      saveCustomPhotos(next);
+      render();
+    }
+
+    /* ---------------------------------------------------------
+       Rendering
+       --------------------------------------------------------- */
+
+    // Render the grid cards based on current filter/search/sort state
+    function render() {
+      const list = getFilteredSortedPhotos();
+      els.grid.innerHTML = "";
+
+      // Status line (quick feedback)
+      els.status.textContent =
+        `${list.length} photo${list.length === 1 ? "" : "s"} • ` +
+        `Filter: ${activeFilter.toUpperCase()}`;
+
+      // Empty state
+      if (list.length === 0) {
+        els.grid.innerHTML = `
+          <div class="card" style="grid-column: 1 / -1;">
+            <div style="padding:14px;">
+              <h2 class="title" style="font-size:14px;margin:0 0 6px;">No results</h2>
+              <p class="sub" style="margin:0;">Try a different search or category.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Create a card for each photo
+      for (const photo of list) {
+        const card = document.createElement("article");
+        card.className = "card";
+
+        // Note: we use innerHTML for layout, but escape user-provided title/category
+        card.innerHTML = `
+          <div class="card__actions">
+            ${
+              isCustomPhoto(photo)
+                ? `<button class="smallbtn" type="button" aria-label="Delete photo" data-del="${photo.id}">🗑</button>`
+                : ""
+            }
+          </div>
+
+          <button type="button" data-open="${photo.id}" aria-label="Open ${escapeHtml(photo.title)}">
+            <img class="thumb" src="${photo.url}" alt="${escapeHtml(photo.title)}" loading="lazy" />
+            <div class="card__cap">
+              <div>
+                <p class="title">${escapeHtml(photo.title)}</p>
+                <p class="sub">${formatDate(photo.createdAt)}</p>
+              </div>
+              <span class="tag">${escapeHtml(photo.category)}</span>
+            </div>
+          </button>
+        `;
+
+        els.grid.appendChild(card);
+      }
+
+      // Wire up open actions (lightbox)
+      els.grid.querySelectorAll("[data-open]").forEach(btn => {
+        btn.addEventListener("click", () => openLightboxById(btn.getAttribute("data-open")));
+      });
+
+      // Wire up delete actions for custom photos
+      els.grid.querySelectorAll("[data-del]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          // prevent the click from also opening the lightbox
+          e.stopPropagation();
+          const id = btn.getAttribute("data-del");
+          deleteCustomPhoto(id);
+        });
+      });
+    }
+
+    /* ---------------------------------------------------------
+       Filters / Search / Sort Events
+       --------------------------------------------------------- */
+
+    // Category chips
+    els.chips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        els.chips.forEach(c => c.classList.remove("is-active"));
+        chip.classList.add("is-active");
+        activeFilter = chip.dataset.filter;
+        render();
+      });
+    });
+
+    // Search input updates as user types
+    els.searchInput.addEventListener("input", render);
+
+    // Sorting dropdown
+    els.sortSelect.addEventListener("change", render);
+
+    /* ---------------------------------------------------------
+       Modal helpers
+       --------------------------------------------------------- */
+
+    function openModal(modalEl) {
+      modalEl.classList.add("is-open");
+      modalEl.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal(modalEl) {
+      modalEl.classList.remove("is-open");
+      modalEl.setAttribute("aria-hidden", "true");
+    }
+
+    // Close modals when clicking overlay or any element with data-close="true"
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target && target.matches("[data-close='true']")) {
+        closeModal(els.lightbox);
+        closeModal(els.addModal);
+      }
+    });
+
+    /* ---------------------------------------------------------
+       Lightbox
+       --------------------------------------------------------- */
+
+    // Open the lightbox by photo id (find its index in the current list)
+    function openLightboxById(photoId) {
+      const list = getFilteredSortedPhotos();
+      const idx = list.findIndex(p => p.id === photoId);
+      if (idx === -1) return;
+
+      lightboxIndex = idx;
+      updateLightbox();
+      openModal(els.lightbox);
+    }
+
+    // Update lightbox UI (image, title, tag, date, nav buttons)
+    function updateLightbox() {
+      const list = getFilteredSortedPhotos();
+      const photo = list[lightboxIndex];
+      if (!photo) return;
+
+      els.lightboxImg.src = photo.url;
+      els.lightboxImg.alt = photo.title;
+      els.lightboxTitle.textContent = photo.title;
+      els.lightboxTag.textContent = photo.category;
+      els.lightboxDate.textContent = formatDate(photo.createdAt);
+
+      // Disable arrows at ends
+      els.prevBtn.disabled = lightboxIndex <= 0;
+      els.nextBtn.disabled = lightboxIndex >= list.length - 1;
+    }
+
+    // Prev/next buttons in the lightbox
+    els.prevBtn.addEventListener("click", () => {
+      if (lightboxIndex > 0) {
+        lightboxIndex -= 1;
+        updateLightbox();
+      }
+    });
+
+    els.nextBtn.addEventListener("click", () => {
+      const list = getFilteredSortedPhotos();
+      if (lightboxIndex < list.length - 1) {
+        lightboxIndex += 1;
+        updateLightbox();
+      }
+    });
+
+    // Keyboard controls:
+    // - Esc closes lightbox
+    // - Left/Right arrows navigate
+    document.addEventListener("keydown", (e) => {
+      if (els.lightbox.classList.contains("is-open")) {
+        if (e.key === "Escape") closeModal(els.lightbox);
+        if (e.key === "ArrowLeft") els.prevBtn.click();
+        if (e.key === "ArrowRight") els.nextBtn.click();
+      }
+
+      // Also allow Esc to close Add Photo modal
+      if (els.addModal.classList.contains("is-open") && e.key === "Escape") {
+        closeModal(els.addModal);
+      }
+    });
+
+    /* ---------------------------------------------------------
+       Add Photo (custom photos stored in localStorage)
+       --------------------------------------------------------- */
+
+    // Open add modal
+    els.addBtn.addEventListener("click", () => {
+      els.addForm.reset();
+      openModal(els.addModal);
+      els.photoUrl.focus();
+    });
+
+    // Add new photo (URL + Title + Category)
+    els.addForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const url = els.photoUrl.value.trim();
+      const title = els.photoTitle.value.trim();
+      const category = els.photoCategory.value;
+
+      // Basic validation
+      if (!/^https?:\/\/.+/i.test(url)) return;
+      if (!title) return;
+
+      // Today as ISO date (YYYY-MM-DD)
+      const today = new Date();
+      const iso = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0")
+      ].join("-");
+
+      // New photo object
+      const newPhoto = {
+        id: makeId(),
+        title,
+        category,
+        url,
+        createdAt: iso
+      };
+
+      // Save at the top so it appears first when sorting by newest
+      const custom = loadCustomPhotos();
+      custom.unshift(newPhoto);
+      saveCustomPhotos(custom);
+
+      closeModal(els.addModal);
+      render();
+    });
+
+    // Initial render on page load
+    render();
+  </script>
+</body>
+</html>
