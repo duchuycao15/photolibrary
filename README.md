@@ -1,3 +1,10 @@
 # photolibrary
-I wrote this website because I love talking photos and travleing so i want a photo gallaeries and it's easy for me to share all of my photos that has taken
-I used Html and CSS alone with javascript to make this and i deived it to many catalaogries and it help me better to sepraate them, the main reason that i made this so i can share it with my friend and it's also mobile friendly and i can access it and share it with my friends on mobile. 
+
+
+💬 I wrote this website because I love talking about photos and traveling, so I wanted a photo gallery that makes it easy for me to share all the photos I’ve taken. 📷
+
+🛠️ I used HTML, CSS, and JavaScript to build it, and I divided the content into many categories to help keep things neatly separated. 🗂️
+
+👥 The main reason I created this site is so I can share it with my friends. 🎉
+
+📱 It’s also mobile‑friendly, allowing me to access and share it directly from my phone. 😊
