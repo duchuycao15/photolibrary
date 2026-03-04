@@ -8,3 +8,5 @@
 👥 The main reason I created this site is so I can share it with my friends. 🎉
 
 📱 It’s also mobile‑friendly, allowing me to access and share it directly from my phone. 😊
+
+I’m continually improving the website and maintaining it day by day.
